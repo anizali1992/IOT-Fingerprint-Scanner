@@ -1,0 +1,566 @@
+#include "MQTT.h"
+#include "Adafruit_Fingerprint.h"
+#include "Adafruit_GFX.h"
+#include <Adafruit_PCD8544.h>
+
+MQTT client("130.255.185.100", 1883, callback);
+int strcompare(char *,char *,int);
+void Enrollnewid(int);
+
+uint8_t getFingerprintEnroll(uint8_t id);
+char a[15];
+char idz[2];
+
+int b;
+// recieve message
+
+#if defined (PARTICLE)
+//
+#else
+#if ARDUINO >= 100
+ #include <SoftwareSerial.h>
+#else
+ #include <NewSoftSerial.h>
+#endif
+#endif
+
+
+Adafruit_PCD8544 display = Adafruit_PCD8544(SS, D2, D3);
+
+#define NUMFLAKES 10
+#define XPOS 0
+#define YPOS 1
+#define DELTAY 2
+
+
+#define LOGO16_GLCD_HEIGHT 16
+#define LOGO16_GLCD_WIDTH  16
+
+
+static const unsigned char logo16_glcd_bmp[] =
+{ 0B00000000, 0B11000000,
+  0B00000001, 0B11000000,
+  0B00000001, 0B11000000,
+  0B00000011, 0B11100000,
+  0B11110011, 0B11100000,
+  0B11111110, 0B11111000,
+  0B01111110, 0B11111111,
+  0B00110011, 0B10011111,
+  0B00011111, 0B11111100,
+  0B00001101, 0B01110000,
+  0B00011011, 0B10100000,
+  0B00111111, 0B11100000,
+  0B00111111, 0B11110000,
+  0B01111100, 0B11110000,
+  0B01110000, 0B01110000,
+  0B00000000, 0B00110000 };
+
+int getFingerprintIDez();
+
+#if defined (PARTICLE)
+Adafruit_Fingerprint finger = Adafruit_Fingerprint(&Serial1);
+#else
+// pin #2 is IN from sensor (GREEN wire)
+// pin #3 is OUT from arduino  (WHITE wire)
+#if ARDUINO >= 100
+SoftwareSerial mySerial(2, 3);
+#else
+NewSoftSerial mySerial(2, 3);
+#endif
+Adafruit_Fingerprint finger = Adafruit_Fingerprint(&mySerial);
+#endif
+
+
+void setup()  
+{
+  Serial.begin(9600);
+  Serial.println("fingertest");
+  delay(2000);
+  //attachInterrupt(D5, test, CHANGE);
+  RGB.control(true);
+  
+  display.begin();
+  
+  display.setContrast(50);
+
+  //display.display(); // show splashscreen
+  delay(2000);
+  display.clearDisplay(); 
+  Serial.println("test");// clears the screen and buffer
+  
+  display.setTextSize(1);
+  display.setTextColor(BLACK);
+  display.setCursor(0,0);
+  display.println("Welcome to    in-Terra India");
+  display.display();
+  delay(5000);
+  display.clearDisplay();
+  
+  //RGB.control(true);
+
+    // connect to the server
+    client.connect("sparkclient");
+
+    // publish/subscribe
+    if (client.isConnected()) 
+    {
+        display.clearDisplay();
+        display.setTextSize(1);
+        display.setTextColor(BLACK);
+        display.setCursor(0,0);
+        display.println("Connection to      MQTT      successful!");
+        display.display();
+        delay(5000);
+        display.clearDisplay();
+        client.publish("Test","hello world");
+        client.subscribe("fp/enroll");
+        client.subscribe("fp/name");
+    }
+
+  // set the data rate for the sensor serial port
+  
+  finger.begin(57600);
+  
+  if (finger.verifyPassword()) {
+    Serial.println("Found fingerprint sensor!");
+    display.clearDisplay();
+    display.setTextSize(1);
+    display.setTextColor(BLACK);
+    display.setCursor(0,0);
+    display.println("Found Fingerprint Sensor");
+    display.display();
+    delay(1000);
+    display.clearDisplay();
+  } else {
+    Serial.println("Did not find fingerprint sensor :(");
+    display.clearDisplay();
+    display.setTextSize(1);
+    display.setTextColor(BLACK);
+    display.setCursor(0,0);
+    display.println("Did not find Fingerprint Sensor");
+    display.display();
+    delay(1000);
+    display.clearDisplay();
+    while (1);
+  }
+  Serial.println("Waiting for valid finger..");
+    display.clearDisplay();
+    display.setTextSize(1);
+    display.setTextColor(BLACK);
+    display.setCursor(0,0);
+    display.println("Waiting for valid finger..");
+    display.display();
+    delay(1000);
+    display.clearDisplay();
+}
+
+void loop()  // run over and over again
+{
+    display.clearDisplay();
+    display.setTextSize(1);
+    display.setTextColor(BLACK);
+    display.setCursor(0,0);
+    display.println("Waiting for   valid finger..");
+    display.display();
+    display.clearDisplay();    
+    getFingerprintIDez();
+  //client.subscribe("fp/enroll");
+  if (client.isConnected())
+        {
+        Serial.println("test");
+        client.loop();}
+    else
+    {client.connect("sparkclient");}
+
+}
+
+uint8_t getFingerprintID() {
+  uint8_t p = finger.getImage();
+  switch (p) {
+    case FINGERPRINT_OK:
+      Serial.println("Image taken");
+      break;
+    case FINGERPRINT_NOFINGER:
+      return p;
+    case FINGERPRINT_PACKETRECIEVEERR:
+      Serial.println("Communication error");
+      return p;
+    case FINGERPRINT_IMAGEFAIL:
+      Serial.println("Imaging error");
+      return p;
+    default:
+      Serial.println("Unknown error");
+      return p;
+  }
+
+  // OK success!
+
+  p = finger.image2Tz();
+  switch (p) {
+    case FINGERPRINT_OK:
+      Serial.println("Image converted");
+      break;
+    case FINGERPRINT_IMAGEMESS:
+      Serial.println("Image too messy");
+      return p;
+    case FINGERPRINT_PACKETRECIEVEERR:
+      Serial.println("Communication error");
+      return p;
+    case FINGERPRINT_FEATUREFAIL:
+      Serial.println("Could not find fingerprint features");
+      return p;
+    case FINGERPRINT_INVALIDIMAGE:
+      Serial.println("Could not find fingerprint features");
+      return p;
+    default:
+      Serial.println("Unknown error");
+      return p;
+  }
+  
+  // OK converted!
+  p = finger.fingerFastSearch();
+  if (p == FINGERPRINT_OK) {
+    Serial.println("Found a print match!");
+  } else if (p == FINGERPRINT_PACKETRECIEVEERR) {
+    Serial.println("Communication error");
+    return p;
+  } else if (p == FINGERPRINT_NOTFOUND) {
+    Serial.println("Did not find a match");
+    return p;
+  } else {
+    Serial.println("Unknown error");
+    return p;
+  }   
+  
+  // found a match!
+  Serial.print("Found ID #"); Serial.print(finger.fingerID); 
+  Serial.print(" with confidence of "); Serial.println(finger.confidence); 
+}
+
+// returns -1 if failed, otherwise returns ID #
+int getFingerprintIDez() {
+  uint8_t p = finger.getImage();
+  if (p != FINGERPRINT_OK)  return -1;
+
+  p = finger.image2Tz();
+  if (p != FINGERPRINT_OK)  return -1;
+  
+
+  p = finger.fingerFastSearch();
+  if (p != FINGERPRINT_OK)  {
+      client.publish("fp/id", "0");
+      return -1;
+  }
+  
+  // found a match!
+  Serial.print("Found ID #"); Serial.print(finger.fingerID); 
+  Serial.print(" with confidence of "); Serial.println(finger.confidence);
+    display.clearDisplay();
+    display.setTextSize(1);
+    display.setTextColor(BLACK);
+    display.setCursor(0,0);
+    display.println("Found ID #"); display.print(finger.fingerID); 
+    display.print(" with confidence of "); display.println(finger.confidence);
+    idz[0] = finger.fingerID+0x30;
+    idz[1] = '\0';
+    client.publish("fp/id", idz);
+    display.display();
+    delay(3000);
+    display.clearDisplay();
+    display.clearDisplay();
+    display.setTextSize(1);
+    display.setTextColor(BLACK);
+    display.setCursor(0,0);
+    display.println("Waiting for   valid finger..");
+    display.display();
+    delay(1000);
+    display.clearDisplay();
+  return finger.fingerID; 
+}
+
+/**void test() 
+{
+    display.clearDisplay();
+    display.setTextSize(1);
+    display.setTextColor(BLACK);
+    display.setCursor(0,0);
+    display.println("Enroll Mode"); 
+    display.display();
+    delay(3000);
+    display.clearDisplay();
+    display.setTextSize(1);
+    display.setTextColor(BLACK);
+    display.setCursor(0,0);
+    display.println("Enter the ID# for new fingerprint.."); 
+    display.display();
+    Serial.println(a);
+    b = a.toInt();
+    Serial.println(a);
+}**/
+
+int strcompare(char *a, char *b,int length)
+{
+    int i=0; 
+    int k=0;
+    for (i=0;i<length;i++)
+    {
+        if(*(a+i)==*(b+i))
+        {k++;}
+    }
+    if (k==length)
+    {
+        return 1;
+    }
+    else
+    {
+        return 0;
+    }
+}
+
+void Enrollnewid(int y)
+{
+Serial.println("Type in the ID # you want to save this finger as...");
+  uint8_t id = 0;
+ /** while (true) {
+    while (! Serial.available())
+    #if defined (PARTICLE)
+	    Particle.process();
+    #else
+	    ;
+    #endif	
+
+    //char c  = Serial.read();
+    if (! isdigit(f)) break;**/
+    id = y;
+  Serial.print("Enrolling ID #");
+  Serial.println(id);
+  display.clearDisplay();
+    display.clearDisplay();
+    display.setTextSize(1);
+    display.setTextColor(BLACK);
+    display.setCursor(0,0);
+    display.println("Enrolling ID#");display.print(id);
+    display.display();
+    delay(1000);
+    display.clearDisplay();
+  delay(5000);
+  
+  while (!getFingerprintEnroll(id) )
+#if defined (SPARK)
+	Particle.process();
+#else
+	;
+#endif
+}
+uint8_t getFingerprintEnroll(uint8_t id) {
+  uint8_t p = -1;
+  Serial.println("Waiting for valid finger to enroll");
+  while (p != FINGERPRINT_OK) {
+    p = finger.getImage();
+    switch (p) {
+    case FINGERPRINT_OK:
+      Serial.println("Image taken");
+      display.clearDisplay();
+      display.clearDisplay();
+      display.setTextSize(1);
+      display.setTextColor(BLACK);
+      display.setCursor(0,0);
+      display.println("Image Taken");
+      display.display();
+      delay(1000);
+      display.clearDisplay();
+      break;
+    case FINGERPRINT_NOFINGER:
+      Serial.println(".");
+      break;
+    case FINGERPRINT_PACKETRECIEVEERR:
+      Serial.println("Communication error");
+      break;
+    case FINGERPRINT_IMAGEFAIL:
+      Serial.println("Imaging error");
+      break;
+    default:
+      Serial.println("Unknown error");
+      break;
+    }
+  }
+
+  // OK success!
+
+  p = finger.image2Tz(1);
+  switch (p) {
+    case FINGERPRINT_OK:
+      Serial.println("Image converted");
+      break;
+    case FINGERPRINT_IMAGEMESS:
+      Serial.println("Image too messy");
+      return p;
+    case FINGERPRINT_PACKETRECIEVEERR:
+      Serial.println("Communication error");
+      return p;
+    case FINGERPRINT_FEATUREFAIL:
+      Serial.println("Could not find fingerprint features");
+      return p;
+    case FINGERPRINT_INVALIDIMAGE:
+      Serial.println("Could not find fingerprint features");
+      return p;
+    default:
+      Serial.println("Unknown error");
+      return p;
+  }
+  
+  Serial.println("Remove finger");
+  display.clearDisplay();
+    display.clearDisplay();
+    display.setTextSize(1);
+    display.setTextColor(BLACK);
+    display.setCursor(0,0);
+    display.println("Remove finger");
+    display.display();
+    delay(1000);
+    display.clearDisplay();
+  delay(2000);
+  p = 0;
+  while (p != FINGERPRINT_NOFINGER) {
+    p = finger.getImage();
+  }
+
+  p = -1;
+  Serial.println("Place same finger again");
+  display.clearDisplay();
+    display.clearDisplay();
+    display.setTextSize(1);
+    display.setTextColor(BLACK);
+    display.setCursor(0,0);
+    display.println("Place same    finger again");
+    display.display();
+    delay(1000);
+    display.clearDisplay();
+  while (p != FINGERPRINT_OK) {
+    p = finger.getImage();
+    switch (p) {
+    case FINGERPRINT_OK:
+      Serial.println("Image taken");
+      break;
+    case FINGERPRINT_NOFINGER:
+      Serial.print(".");
+      break;
+    case FINGERPRINT_PACKETRECIEVEERR:
+      Serial.println("Communication error");
+      break;
+    case FINGERPRINT_IMAGEFAIL:
+      Serial.println("Imaging error");
+      break;
+    default:
+      Serial.println("Unknown error");
+      break;
+    }
+  }
+
+  // OK success!
+
+  p = finger.image2Tz(2);
+  switch (p) {
+    case FINGERPRINT_OK:
+      Serial.println("Image converted");
+      display.clearDisplay();
+    display.clearDisplay();
+    display.setTextSize(1);
+    display.setTextColor(BLACK);
+    display.setCursor(0,0);
+    display.println("Done!");
+    display.display();
+    delay(1000);
+    display.clearDisplay();
+      break;
+    case FINGERPRINT_IMAGEMESS:
+      Serial.println("Image too messy");
+      return p;
+    case FINGERPRINT_PACKETRECIEVEERR:
+      Serial.println("Communication error");
+      return p;
+    case FINGERPRINT_FEATUREFAIL:
+      Serial.println("Could not find fingerprint features");
+      return p;
+    case FINGERPRINT_INVALIDIMAGE:
+      Serial.println("Could not find fingerprint features");
+      return p;
+    default:
+      Serial.println("Unknown error");
+      return p;
+  }
+  
+  
+  // OK converted!
+  p = finger.createModel();
+  if (p == FINGERPRINT_OK) {
+    Serial.println("Prints matched!");
+  } else if (p == FINGERPRINT_PACKETRECIEVEERR) {
+    Serial.println("Communication error");
+    return p;
+  } else if (p == FINGERPRINT_ENROLLMISMATCH) {
+    Serial.println("Fingerprints did not match");
+    return p;
+  } else {
+    Serial.println("Unknown error");
+    return p;
+  }   
+  
+  p = finger.storeModel(id);
+  if (p == FINGERPRINT_OK) {
+    Serial.println("Stored!");
+  } else if (p == FINGERPRINT_PACKETRECIEVEERR) {
+    Serial.println("Communication error");
+    return p;
+  } else if (p == FINGERPRINT_BADLOCATION) {
+    Serial.println("Could not store in that location");
+    return p;
+  } else if (p == FINGERPRINT_FLASHERR) {
+    Serial.println("Error writing to flash");
+    return p;
+  } else {
+    Serial.println("Unknown error");
+    return p;
+  }   
+}
+
+void callback(char* topic, byte* payload, unsigned int length) {
+    memcpy(a, payload, length);
+   
+    if (strcompare(topic,"fp/enroll",9))
+    {   
+        int x;
+        EEPROM.get(8,x);
+        Enrollnewid(x+1);
+        Serial.println(" ID to be stored is ");Serial.print(x+1);
+        a[length] = '/';
+        a[length+1]=x+1;
+        a[length+2] = NULL;
+        client.publish("fp/log",a);
+        EEPROM.put(8,x+1);
+        
+    }    
+    if (strcompare(topic,"fp/name",7))
+    {
+        display.clearDisplay();
+        display.setTextSize(1);
+        display.setTextColor(BLACK);
+        display.setCursor(0,0);
+        display.println("Welcome ");display.print(a);
+        display.display();
+        delay(5000);
+        display.clearDisplay(); 
+    }
+   
+
+    if (!strcmp(a, "RED"))
+        RGB.color(255, 0, 0);
+    else if (!strcmp(a, "GREEN"))
+        RGB.color(0, 255, 0);
+    else if (!strcmp(a, "BLUE"))
+        RGB.color(0, 0, 255);
+    else
+        RGB.color(255, 255, 255);
+    delay(1000);
+    
+}
