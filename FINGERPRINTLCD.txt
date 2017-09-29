@@ -3,7 +3,7 @@
 #include "Adafruit_GFX.h"
 #include <Adafruit_PCD8544.h>
 
-//Enter your MQTT server details
+//Enter MQTT server details
 MQTT client(your mqtt server, 1883, callback);
 int strcompare(char *,char *,int);
 void Enrollnewid(int);
