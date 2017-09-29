@@ -27,7 +27,7 @@ Enroll new ID process
 1. User publishes the new employee name and employee ID# to MQTT.
 fp/enroll – Name,EmployeeID (No Spaces)
 2. Particle photon subscribes to fp/enroll, generates a new fingerprint ID# from the Eeprom memory and registers the new ID.
-3. Particle phtoon adds the new fingerprint ID# to the original payload and publishes the name, employee ID and the fingerprint ID# to MQTT.
+3. Particle photon adds the new fingerprint ID# to the original payload and publishes the name, employee ID and the fingerprint ID# to MQTT.
 4. Raspberry pi subscribes to fp/log and adds the new entry to the FINGERPRINTS table.
 5. Particle photon returns to fingeprint scanning mode.
 
