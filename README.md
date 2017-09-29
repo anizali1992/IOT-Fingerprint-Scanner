@@ -34,7 +34,7 @@ fp/enroll – Name,EmployeeID (No Spaces)
 Time logging process
 
 1. When employee scans his fingerprint on the scanner, the photon and sensor verify the image.
-2. If ID is verified, the photon publishes the ID3 to MQTT.
+2. If ID is verified, the photon publishes the ID# to MQTT.
 fp/id – Fingerprint ID#
 3. Raspberry pi subscribes to fp/id and depending on the flag (Entry/exit), registers the time log details to the TIMELOG Table.
-4. If he flag is exit, it calculates the working hrs for the day.
+4. If the flag is exit, it calculates the working hrs for the day.
