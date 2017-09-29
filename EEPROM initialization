@@ -1,0 +1,15 @@
+int addr = 8;
+int value = 0;
+
+
+void setup() {
+Serial.begin(9600);
+EEPROM.put(addr,0);
+}
+
+void loop() {
+    int value2;
+    EEPROM.get(addr, value2);
+    Serial.println(value2);
+
+}
