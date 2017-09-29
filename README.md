@@ -3,11 +3,11 @@ Setting up an Adafruit Fingerprint Scanner with Nokia 5110 LCD. Using a Particle
 
 Required:
 
-Adafruit Fingerprint Sensor
-Particle Photon
-Nokia 5110 LCD
-Raspberry PI 3
-SQLite3 installed your Raspberry PI
+Adafruit Fingerprint Sensor, 
+Particle Photon, 
+Nokia 5110 LCD, 
+Raspberry PI 3, 
+SQLite3 installed your Raspberry PI, 
 MQTT server
 
 
